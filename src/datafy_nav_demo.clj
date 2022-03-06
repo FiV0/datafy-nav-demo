@@ -1,6 +1,7 @@
 (ns datafy-nav-demo
   (:require [clojure.java.io :as io]
-            [clojure.core.protocols :as p]))
+            [clojure.core.protocols :as p]
+            [next.jdbc :as jdbc]))
 
 ;; do a couple of examples
 ;; - stretching that this my interpretation
@@ -64,8 +65,6 @@
 
 ;; jdbc
 
-(require '[next.jdbc :as jdbc])
-
 ;; here I first had `with-open`. This doesn't work as the connection gets
 ;; closed after the first connection.
 (def con (jdbc/get-connection
@@ -81,4 +80,8 @@
 
 (meta track)
 
-(p/nav track :track/GenreId (:track/GenreId track))
+(p/nav track :tracks/GenreId (:tracks/GenreId track))
+
+;; in case of jdbc datafy is mostly irrelevant as data is mostly already in clojure form
+
+;; xt
