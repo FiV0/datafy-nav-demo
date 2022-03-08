@@ -4,7 +4,8 @@
  {org.clojure/clojure    {:mvn/version "1.11.0-rc1"}
   com.github.seancorfield/next.jdbc {:mvn/version "1.2.772"}
   org.xerial/sqlite-jdbc {:mvn/version "3.36.0.3"}
-  com.xtdb/xtdb-core {:mvn/version "dev-SNAPSHOT"}}
+  com.xtdb/xtdb-core {:mvn/version "1.20.0"}
+  com.xtdb/xtdb-rocksdb {:mvn/version "1.20.0"}}
 
  :aliases
  {:dev

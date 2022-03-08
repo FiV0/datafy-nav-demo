@@ -1,7 +1,9 @@
 (ns datafy-nav-demo
-  (:require [clojure.java.io :as io]
-            [clojure.core.protocols :as p]
-            [next.jdbc :as jdbc]))
+  (:require [clojure.core.protocols :as p]
+            [clojure.edn :as edn]
+            [clojure.java.io :as io]
+            [next.jdbc :as jdbc]
+            [xtdb.api :as xt]))
 
 ;; do a couple of examples
 ;; - stretching that this my interpretation
@@ -10,6 +12,8 @@
 
 ;; TODO jean corfield post
 ;; TODO datomic + xt auto key resolving
+;; TODO add REBL
+;; TODO look at xtdb-inspector
 
 (extend-protocol p/Datafiable
   java.io.File
@@ -85,3 +89,44 @@
 ;; in case of jdbc datafy is mostly irrelevant as data is mostly already in clojure form
 
 ;; xt
+
+(defn start-xtdb! []
+  (letfn [(kv-store [dir]
+            {:kv-store {:xtdb/module 'xtdb.rocksdb/->kv-store
+                        :db-dir (io/file dir)
+                        :sync? true}})]
+    (xt/start-node
+     {:xtdb/tx-log (kv-store "data/dev/tx-log")
+      :xtdb/document-store (kv-store "data/dev/doc-store")
+      :xtdb/index-store (kv-store "data/dev/index-store")})))
+
+(def xtdb-node (start-xtdb!))
+
+(defn stop-xtdb! []
+  (.close xtdb-node))
+
+(def EOF (Object.))
+
+(defn read-data []
+  (with-open [pbr (-> (io/file "resources/movies.edn")
+                      io/reader
+                      java.io.PushbackReader.)]
+    (loop [res []]
+      (let [form (edn/read {:eof EOF} pbr)]
+        (if (= form EOF)
+          res
+          (recur (conj res form)))))))
+
+(def data (read-data))
+
+(xt/submit-tx xtdb-node (take 1 data))
+
+(defn db []
+  (xt/db xtdb-node))
+
+(->> (xt/q (db)
+           '{:find [e]
+             :where [[e :tmdb.person/id 65731]]})
+     first
+     first
+     (xt/entity (db)))
