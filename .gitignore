@@ -12,3 +12,4 @@ resources/public/ui
 out
 .#*
 .clj-kondo/.cache
+data

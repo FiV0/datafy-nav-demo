@@ -102,8 +102,7 @@
 
 (def xtdb-node (start-xtdb!))
 
-(defn stop-xtdb! []
-  (.close xtdb-node))
+(defn stop-xtdb! [] (.close xtdb-node))
 
 (def EOF (Object.))
 
@@ -121,12 +120,66 @@
 
 (xt/submit-tx xtdb-node (take 1 data))
 
-(defn db []
-  (xt/db xtdb-node))
+(defn db [] (xt/db xtdb-node))
 
 (->> (xt/q (db)
-           '{:find [e]
-             :where [[e :tmdb.person/id 65731]]})
-     first
-     first
-     (xt/entity (db)))
+           '{:find [(pull ?e [*])]
+             :where [[?e :tmdb.person/id 65731]]})
+     ;; first
+     ;; first
+     ;; (xt/entity (db))
+     )
+
+(def schema [{:type :movie
+              :key :tmdb.movie/id
+              :key-fn (fn [id] (keyword (name 'tmdb) (str "movie-" id)))}
+             {:type :person
+              :key :tmdb.person/id
+              :key-fn (fn [id] (keyword (name 'tmdb) (str "person-" id)))}])
+
+(defn find-mapping [schema type]
+  (some #(when (= type (:key %)) %) schema))
+
+(comment
+  (find-mapping schema :tmbd.movie/id))
+
+(defn xt-nav [schema db]
+  (fn [e a v]
+    (let [ks (set (keys e))]
+      (if (not (ks a))
+        (do
+          (println "not case")
+          v)
+        (if-let [{:keys [key-fn]} (find-mapping schema a)]
+          (xt/entity db (key-fn v))
+          (do
+            (println "other not")
+            (get e a)))))))
+
+(defn q [schema db query]
+  (let [res (-> (xt/q db query) first)
+        nav (xt-nav schema db)]
+    (->> res
+         (map #(vary-meta % merge {`p/nav nav}))
+         (into #{}))))
+
+(def xt-q (partial q schema))
+
+(defn entity [schema db eid]
+  (vary-meta (xt/entity db eid)
+             merge
+             {`p/nav (xt-nav schema db)}))
+
+(def xt-entity (partial entity schema))
+
+(def eid (-> (xt/q (db)
+                   '{:find [?e]
+                     :where [[?e :tmdb.person/id]]})
+             first
+             first))
+
+(def e (xt-entity (db) eid))
+
+(meta e)
+
+(p/nav e :tmdb.person/id 65731)
