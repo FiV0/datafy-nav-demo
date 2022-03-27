@@ -3,7 +3,11 @@
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [next.jdbc :as jdbc]
-            [xtdb.api :as xt]))
+            [xtdb.api :as xt]
+            [cognitect.rebl :as rebl]))
+
+(comment
+  (rebl/ui))
 
 ;; do a couple of examples
 ;; - stretching that this my interpretation
@@ -14,6 +18,7 @@
 ;; TODO datomic + xt auto key resolving
 ;; TODO add REBL
 ;; TODO look at xtdb-inspector
+;; TODO think about url navigation / datafication / visualization
 
 (extend-protocol p/Datafiable
   java.io.File

@@ -1,17 +1,29 @@
 {:paths ["src" "resources"]
 
  :deps
- {org.clojure/clojure    {:mvn/version "1.11.0-rc1"}
+ {org.clojure/clojure               {:mvn/version "1.11.0"}
   com.github.seancorfield/next.jdbc {:mvn/version "1.2.772"}
-  org.xerial/sqlite-jdbc {:mvn/version "3.36.0.3"}
-  com.xtdb/xtdb-core {:mvn/version "1.20.0"}
-  com.xtdb/xtdb-rocksdb {:mvn/version "1.20.0"}}
+  org.xerial/sqlite-jdbc            {:mvn/version "3.36.0.3"}
+  com.xtdb/xtdb-core                {:mvn/version "1.20.0"}
+  com.xtdb/xtdb-rocksdb             {:mvn/version "1.20.0"}}
 
  :aliases
  {:dev
   {:extra-paths ["dev"]
    :extra-deps  {org.clojure/tools.namespace {:mvn/version "1.1.0"}
-                 com.lambdaisland/classpath  {:mvn/version "0.0.27"}}}}
+                 com.lambdaisland/classpath  {:mvn/version "0.0.27"}}}
+  :rebl
+  {:extra-deps {nrepl/nrepl                       {:mvn/version "0.8.3"}
+                com.cognitect/rebl                {:mvn/version "0.9.244"}
+                rickmoynihan/nrebl.middleware     {:mvn/version "0.3.1"}
+                org.openjfx/javafx-fxml           {:mvn/version "11.0.1"}
+                org.openjfx/javafx-controls       {:mvn/version "11.0.1"}
+                org.openjfx/javafx-graphics       {:mvn/version "11.0.1"}
+                org.openjfx/javafx-media          {:mvn/version "11.0.1"}
+                org.openjfx/javafx-swing          {:mvn/version "11.0.1"}
+                org.openjfx/javafx-base           {:mvn/version "11.0.1"}
+                org.openjfx/javafx-web            {:mvn/version "11.0.1"}}
+   :main-opts  ["-m" "nrepl.cmdline" "-i" "--middleware" "[nrebl.middleware/wrap-nrebl]"]}}
 
  :mvn/repos
  {"central"        {:url "https://repo1.maven.org/maven2/"}
