@@ -16,7 +16,6 @@
 
 ;; TODO jean corfield post
 ;; TODO datomic + xt auto key resolving
-;; TODO add REBL
 ;; TODO look at xtdb-inspector
 ;; TODO think about url navigation / datafication / visualization
 

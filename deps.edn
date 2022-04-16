@@ -14,6 +14,7 @@
                  com.lambdaisland/classpath  {:mvn/version "0.0.27"}}}
   :rebl
   {:extra-deps {nrepl/nrepl                       {:mvn/version "0.8.3"}
+                ;; com.cognitect/rebl                {:mvn/version "0.9.245"}
                 com.cognitect/rebl                {:mvn/version "0.9.244"}
                 rickmoynihan/nrebl.middleware     {:mvn/version "0.3.1"}
                 org.openjfx/javafx-fxml           {:mvn/version "11.0.1"}

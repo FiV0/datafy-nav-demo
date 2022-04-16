@@ -1,16 +1,9 @@
-# {project}
+# Datafy nav demo
 
-Executing the program can either be done via
-```
-clj -M -m scratch :arg1 :arg2
-```
-or by compiling a jar via
-```
-clj -T:build clean
-clj -T:build jar
-```
-and executing it via
-```
-java -jar target/lib-0.1.4.jar :arg1 :arg2
-```
+Before you can `jack-in`, you need to install REBL, a experimental tool developed by cognitect.
+
+You can download REBL [here](https://cognitect.com/dev-tools/). Once downloaded follow the enclosed
+instructions to install corresponding libraries into your local maven cache.
+
+
 ## License
