@@ -1,5 +1,6 @@
 (ns datafy-nav-demo
   (:require [clojure.core.protocols :as p]
+            [clojure.datafy :as d]
             [clojure.edn :as edn]
             [clojure.java.io :as io]
             [next.jdbc :as jdbc]
@@ -8,6 +9,9 @@
 
 (comment
   (rebl/ui))
+
+(comment
+  (d/datafy *ns* ))
 
 ;; do a couple of examples
 ;; - stretching that this my interpretation
@@ -29,18 +33,18 @@
        {`p/nav (fn [_ _ v]
                  (io/file this v))})
       {:length (.length this)
-       :name (.getName this)})))
+       :name   (.getName this)})))
 
 (def f (io/file "/"))
 
-(p/datafy f)
+(d/datafy f)
 
 (meta *1)
 
 (->> f
-     p/datafy
-     (#(p/nav % 0 (first %)))
-     p/datafy)
+     d/datafy
+     (#(d/nav % 0 (first %)))
+     d/datafy)
 
 (defrecord NavFS [path]
   p/Datafiable
@@ -63,13 +67,13 @@
 
 (def nav-f (NavFS. "/"))
 
-(p/datafy nav-f)
+(d/datafy nav-f)
 
 (def datafied-nav-f (p/datafy nav-f))
 
-(p/nav datafied-nav-f (-> datafied-nav-f first first) (-> datafied-nav-f first second))
+(d/nav datafied-nav-f (-> datafied-nav-f first first) (-> datafied-nav-f first second))
 
-(p/datafy *1)
+(d/datafy *1)
 
 ;; jdbc
 
@@ -88,7 +92,7 @@
 
 (meta track)
 
-(p/nav track :tracks/GenreId (:tracks/GenreId track))
+(d/nav track :tracks/GenreId (:tracks/GenreId track))
 
 ;; in case of jdbc datafy is mostly irrelevant as data is mostly already in clojure form
 
@@ -186,4 +190,25 @@
 
 (meta e)
 
-(p/nav e :tmdb.person/id 65731)
+(d/nav e :tmdb.person/id 65731)
+
+;; urls
+
+(java.net.URL. "https://clojure.org")
+
+
+;; caveats
+;; metadata attachment with respect to serialization
+
+(def max-lazy 100)
+
+(extend-protocol p/Datafiable
+  clojure.lang.LazySeq
+  (datafy [this]
+    (if (< (bounded-count max-lazy this) max-lazy)
+      this
+      (lazy-seq (take max-lazy this)))))
+
+(def lazy-datafied (d/datafy (lazy-seq (range))))
+
+(keys (meta lazy-datafied))
