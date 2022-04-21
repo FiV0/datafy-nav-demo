@@ -7,18 +7,14 @@
             [xtdb.api :as xt]
             [cognitect.rebl :as rebl]))
 
+
+(d/datafy *ns*)
+
+;; protocols via metadata
+
 (comment
   (rebl/ui))
 
-(comment
-  (d/datafy *ns* ))
-
-;; do a couple of examples
-;; - stretching that this my interpretation
-;; - introduction jdbc as a motivating example
-;; - maybe auto key resolving in xt
-
-;; TODO jean corfield post
 ;; TODO datomic + xt auto key resolving
 ;; TODO look at xtdb-inspector
 ;; TODO think about url navigation / datafication / visualization
@@ -27,11 +23,10 @@
   java.io.File
   (datafy [this]
     (if (.isDirectory this)
-      (vary-meta
-       (-> this .list lazy-seq)
-       merge
-       {`p/nav (fn [_ _ v]
-                 (io/file this v))})
+      (vary-meta (-> this .list lazy-seq)
+                 merge
+                 {`p/nav (fn [_ _ v]
+                           (io/file this v))})
       {:length (.length this)
        :name   (.getName this)})))
 
@@ -77,8 +72,6 @@
 
 ;; jdbc
 
-;; here I first had `with-open`. This doesn't work as the connection gets
-;; closed after the first connection.
 (def con (jdbc/get-connection
           (jdbc/get-datasource {:dbtype "sqlite"
                                 :dbname "resources/chinook.db"})))
@@ -94,8 +87,6 @@
 
 (d/nav track :tracks/GenreId (:tracks/GenreId track))
 
-;; in case of jdbc datafy is mostly irrelevant as data is mostly already in clojure form
-
 ;; xt
 
 (defn start-xtdb! []
@@ -104,93 +95,65 @@
                         :db-dir (io/file dir)
                         :sync? true}})]
     (xt/start-node
-     {:xtdb/tx-log (kv-store "data/dev/tx-log")
-      :xtdb/document-store (kv-store "data/dev/doc-store")
-      :xtdb/index-store (kv-store "data/dev/index-store")})))
+     {:xtdb/tx-log (kv-store "xtdb-chinook/tx-log")
+      :xtdb/document-store (kv-store "xtdb-chinook/doc-store")
+      :xtdb/index-store (kv-store "xtdb-chinook/index-store")})))
 
 (def xtdb-node (start-xtdb!))
 
 (defn stop-xtdb! [] (.close xtdb-node))
 
-(def EOF (Object.))
-
-(defn read-data []
-  (with-open [pbr (-> (io/file "resources/movies.edn")
-                      io/reader
-                      java.io.PushbackReader.)]
-    (loop [res []]
-      (let [form (edn/read {:eof EOF} pbr)]
-        (if (= form EOF)
-          res
-          (recur (conj res form)))))))
-
-(def data (read-data))
-
-(xt/submit-tx xtdb-node (take 1 data))
-
 (defn db [] (xt/db xtdb-node))
 
-(->> (xt/q (db)
-           '{:find [(pull ?e [*])]
-             :where [[?e :tmdb.person/id 65731]]})
-     ;; first
-     ;; first
-     ;; (xt/entity (db))
-     )
+(xt/q (db)
+      '{:find [?name]
+        :where
+        [[?t :track/name "For Those About To Rock (We Salute You)" ]
+         [?t :track/album ?album]
+         [?album :album/artist ?artist]
+         [?artist :artist/name ?name]]})
 
-(def schema [{:type :movie
-              :key :tmdb.movie/id
-              :key-fn (fn [id] (keyword (name 'tmdb) (str "movie-" id)))}
-             {:type :person
-              :key :tmdb.person/id
-              :key-fn (fn [id] (keyword (name 'tmdb) (str "person-" id)))}])
-
-(defn find-mapping [schema type]
-  (some #(when (= type (:key %)) %) schema))
-
-(comment
-  (find-mapping schema :tmbd.movie/id))
-
-(defn xt-nav [schema db]
+(defn xt-nav [db]
   (fn [e a v]
-    (let [ks (set (keys e))]
-      (if (not (ks a))
-        (do
-          (println "not case")
-          v)
-        (if-let [{:keys [key-fn]} (find-mapping schema a)]
-          (xt/entity db (key-fn v))
-          (do
-            (println "other not")
-            (get e a)))))))
+    (if-let [new-e (xt/entity db v)]
+      (vary-meta new-e
+                 merge
+                 {`p/nav (xt-nav db)})
+      v)))
 
-(defn q [schema db query]
-  (let [res (-> (xt/q db query) first)
-        nav (xt-nav schema db)]
-    (->> res
-         (map #(vary-meta % merge {`p/nav nav}))
-         (into #{}))))
-
-(def xt-q (partial q schema))
-
-(defn entity [schema db eid]
+(defn entity [db eid]
   (vary-meta (xt/entity db eid)
              merge
-             {`p/nav (xt-nav schema db)}))
+             {`p/nav (xt-nav db)}))
 
-(def xt-entity (partial entity schema))
+(entity (db) :track/id-1)
 
-(def eid (-> (xt/q (db)
-                   '{:find [?e]
-                     :where [[?e :tmdb.person/id]]})
-             first
-             first))
+;; reverse lookup
 
-(def e (xt-entity (db) eid))
+;; (defn q [db query]
+;;   (let [res (-> (xt/q db query) first)
+;;         nav (xt-nav schema db)]
+;;     (->> res
+;;          (map #(vary-meta % merge {`p/nav nav}))
+;;          (into #{}))))
 
-(meta e)
+;; (def xt-q (partial q schema))
 
-(d/nav e :tmdb.person/id 65731)
+
+
+;; (def xt-entity (partial entity schema))
+
+;; (def eid (-> (xt/q (db)
+;;                    '{:find [?e]
+;;                      :where [[?e :tmdb.person/id]]})
+;;              first
+;;              first))
+
+;; (def e (xt-entity (db) eid))
+
+;; (meta e)
+
+;; (d/nav e :tmdb.person/id 65731)
 
 ;; urls
 
