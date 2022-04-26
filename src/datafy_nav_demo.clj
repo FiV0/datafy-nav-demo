@@ -130,30 +130,45 @@
 
 ;; reverse lookup
 
-;; (defn q [db query]
-;;   (let [res (-> (xt/q db query) first)
-;;         nav (xt-nav schema db)]
-;;     (->> res
-;;          (map #(vary-meta % merge {`p/nav nav}))
-;;          (into #{}))))
+(defn- reverse-attribute? [a]
+  (= \_ (first (name a))))
 
-;; (def xt-q (partial q schema))
+(comment
+  (reverse-attribute? :foo/_bar))
 
+(defn- reverse-attribute->attribute [a]
+  (keyword (namespace a) (subs (name a) 1)))
 
+(comment
+  (reverse-attribute->attribute :foo/_bar))
 
-;; (def xt-entity (partial entity schema))
+(defn reverse-lookup [db e reverse-a]
+  (let [attribute (reverse-attribute->attribute reverse-a)
+        query `{:find [~'(pull ?e [*])]
+                :where
+                [[~'?e ~attribute ~(:xt/id e)]]}]
+    (xt/q db query)))
 
-;; (def eid (-> (xt/q (db)
-;;                    '{:find [?e]
-;;                      :where [[?e :tmdb.person/id]]})
-;;              first
-;;              first))
+(comment
+  (def album-e (entity (db) :album/id-1))
+  (reverse-lookup (db) album-e :track/_album))
 
-;; (def e (xt-entity (db) eid))
+(defn xt-nav [db]
+  (fn [e a v]
+    (if-let [new-e (xt/entity db v)]
+      (vary-meta new-e
+                 merge
+                 {`p/nav (xt-nav db)})
+      (if (reverse-attribute? a)
+        (reverse-lookup db e a)
+        v))))
 
-;; (meta e)
+(defn entity [db eid]
+  (vary-meta (xt/entity db eid)
+             merge
+             {`p/nav (xt-nav db)}))
 
-;; (d/nav e :tmdb.person/id 65731)
+(entity (db) :track/id-1)
 
 ;; urls
 
