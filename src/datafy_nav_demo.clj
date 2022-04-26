@@ -15,10 +15,6 @@
 (comment
   (rebl/ui))
 
-;; TODO datomic + xt auto key resolving
-;; TODO look at xtdb-inspector
-;; TODO think about url navigation / datafication / visualization
-
 (extend-protocol p/Datafiable
   java.io.File
   (datafy [this]
@@ -153,20 +149,20 @@
   (def album-e (entity (db) :album/id-1))
   (reverse-lookup (db) album-e :track/_album))
 
+(defn- attach-nav-fn [o nav-fn]
+  (vary-meta o merge {`p/nav nav-fn}))
+
 (defn xt-nav [db]
   (fn [e a v]
     (if-let [new-e (xt/entity db v)]
-      (vary-meta new-e
-                 merge
-                 {`p/nav (xt-nav db)})
+      (attach-nav-fn new-e (xt-nav db))
       (if (reverse-attribute? a)
-        (reverse-lookup db e a)
+        (let [res (reverse-lookup db e a)]
+          (into (empty res) (map (fn [[e]] [(attach-nav-fn e (xt-nav db))])) res))
         v))))
 
 (defn entity [db eid]
-  (vary-meta (xt/entity db eid)
-             merge
-             {`p/nav (xt-nav db)}))
+  (attach-nav-fn (xt/entity db eid) (xt-nav db)))
 
 (entity (db) :track/id-1)
 
